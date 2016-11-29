@@ -9,6 +9,7 @@ from django.utils.html import escape
 import json
 
 from smart_selects.utils import unicode_sorter, sort_results
+from smart_selects.qserializer import QSerializer, SerializationError
 
 try:
     from django.apps import apps
@@ -57,7 +58,8 @@ class JqueryMediaMixin(object):
 class ChainedSelect(JqueryMediaMixin, Select):
     def __init__(self, to_app_name, to_model_name, chained_field, chained_model_field,
                  foreign_key_app_name, foreign_key_model_name, foreign_key_field_name,
-                 show_all, auto_choose, sort=True, manager=None, view_name=None, *args, **kwargs):
+                 show_all, auto_choose, sort=True, manager=None, view_name=None,
+                 limit_choices_to=None, *args, **kwargs):
         self.to_app_name = to_app_name
         self.to_model_name = to_model_name
         self.chained_field = chained_field
@@ -67,6 +69,7 @@ class ChainedSelect(JqueryMediaMixin, Select):
         self.sort = sort
         self.manager = manager
         self.view_name = view_name
+        self.limit_choices_to = limit_choices_to
         self.foreign_key_app_name = foreign_key_app_name
         self.foreign_key_model_name = foreign_key_model_name
         self.foreign_key_field_name = foreign_key_field_name
@@ -117,18 +120,25 @@ class ChainedSelect(JqueryMediaMixin, Select):
 #            # Hacky way to getting the correct empty_label from the field instead of a hardcoded '--------'
 #            empty_label = iterator.next()[1]
 
+        qserializer = QSerializer()
+        try:
+            limit_choices_to = qserializer.dumps(self.limit_choices_to)
+        except SerializationError:
+            limit_choices_to = 'null'
+
         js = """
         <script type="text/javascript">
         (function($) {
             var chainfield = "#id_%(chainfield)s";
             var url = "%(url)s";
+            var limit_choices_to = '%(limit_choices_to)s';
             var id = "#%(id)s";
             var value = %(value)s;
             var auto_choose = %(auto_choose)s;
             var empty_label = "%(empty_label)s";
 
             $(document).ready(function() {
-                chainedfk.init(chainfield, url, id, value, empty_label, auto_choose);
+                chainedfk.init(chainfield, url, limit_choices_to, id, value, empty_label, auto_choose);
             });
         })(jQuery || django.jQuery);
         </script>
@@ -136,6 +146,7 @@ class ChainedSelect(JqueryMediaMixin, Select):
         """
         js = js % {"chainfield": chained_field,
                    "url": url,
+                   "limit_choices_to": limit_choices_to,
                    "id": attrs['id'],
                    'value': 'undefined' if value is None or value == '' else value,
                    'auto_choose': auto_choose,

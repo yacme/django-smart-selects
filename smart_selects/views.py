@@ -64,6 +64,17 @@ def filterchain(request, app, model, field, foreign_key_app_name, foreign_key_mo
 
     results = do_filter(queryset, keywords)
 
+    limit_choices_to = request.GET.get('limit_choices_to', None)
+    if limit_choices_to:
+        from smart_selects.qserializer import QSerializer, SerializationError
+        qserializer = QSerializer()
+        try:
+            qobj = qserializer.loads(limit_choices_to)
+            if qobj is not None:
+                results = results.filter(qobj)
+        except SerializationError:
+            pass
+
     # Sort results if model doesn't include a default ordering.
     if not getattr(model_class._meta, 'ordering', False):
         results = list(results)

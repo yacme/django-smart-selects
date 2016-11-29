@@ -26,7 +26,7 @@
                 fireEvent(elem, 'change');
                 win.close();
             },
-            fill_field: function(val, init_value, elem_id, url, empty_label, auto_choose){
+            fill_field: function(val, init_value, elem_id, url, limit_choices_to, empty_label, auto_choose){
                 url = url + "/" + val+ "/";
                 if (!val || val === ''){
                     var options = '<option value="">' + empty_label +'</option>';
@@ -35,7 +35,7 @@
                     $(elem_id).trigger('change');
                     return;
                 }
-                $.getJSON(url, function(j){
+                $.getJSON(url, {'limit_choices_to': limit_choices_to}, function(j){
                     var options = '<option value="">' + empty_label +'</option>';
                     for (var i = 0; i < j.length; i++) {
                         options += '<option value="' + j[i].value + '">' + j[i].display + '<'+'/option>';
@@ -54,12 +54,12 @@
                     $(elem_id).trigger('change');
                 });
             },
-            init: function(chainfield, url, id, init_value, empty_label, auto_choose) {
+            init: function(chainfield, url, limit_choices_to, id, init_value, empty_label, auto_choose) {
                 var fill_field = this.fill_field;
 
                 if(!$(chainfield).hasClass("chained")){
                     var val = $(chainfield).val();
-                    fill_field(val, init_value, id, url, empty_label, auto_choose);
+                    fill_field(val, init_value, id, url, limit_choices_to, empty_label, auto_choose);
                 }
                 $(chainfield).change(function(){
                     // Handle the case of inlines, where the ID will depend on which list item we are dealing with
@@ -71,7 +71,7 @@
 
                     var start_value = $(localID).val();
                     var val = $(this).val();
-                    fill_field(val, start_value, localID, url, empty_label, auto_choose);
+                    fill_field(val, start_value, localID, url, limit_choices_to, empty_label, auto_choose);
                 });
                 if (typeof(dismissAddAnotherPopup) !== 'undefined') {
                     var oldDismissAddAnotherPopup = dismissAddAnotherPopup;
