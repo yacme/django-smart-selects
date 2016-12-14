@@ -3,6 +3,7 @@ try:
     get_model = apps.get_model
 except ImportError:
     from django.db.models.loading import get_model
+from django.db.utils import ProgrammingError
 from django.forms.models import ModelChoiceField, ModelMultipleChoiceField
 from django.forms import ChoiceField
 from smart_selects.widgets import ChainedSelect, ChainedSelectMultiple
@@ -74,15 +75,18 @@ class GroupedModelSelect(ModelChoiceField):
         group_indexes = {}
         choices = [("", self.empty_label or "---------")]
         i = len(choices)
-        for item in self.queryset:
-            order_field = getattr(item, self.order_field)
-            group_index = order_field.pk
-            if group_index not in group_indexes:
-                group_indexes[group_index] = i
-                choices.append([force_text(order_field), []])
-                i += 1
-            choice_index = group_indexes[group_index]
-            choices[choice_index][1].append(self.make_choice(item))
+        try:
+            for item in self.queryset:
+                order_field = getattr(item, self.order_field)
+                group_index = order_field.pk
+                if group_index not in group_indexes:
+                    group_indexes[group_index] = i
+                    choices.append([force_text(order_field), []])
+                    i += 1
+                choice_index = group_indexes[group_index]
+                choices[choice_index][1].append(self.make_choice(item))
+        except ProgrammingError:
+            pass
 
         return choices
 
